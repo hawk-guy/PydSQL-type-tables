@@ -64,7 +64,6 @@ ProductDetails = Annotated[
 	Field(discriminator="kind"),
 ]
 
-
 class Product(BaseModel):
 	product_id: int
 	sku: str = Field(min_length=3, max_length=32)
@@ -73,96 +72,6 @@ class Product(BaseModel):
 	launch_date: date
 	is_available: bool = True
 	details: ProductDetails
-
-
-# ---------------------------
-# Smoke tests for abstraction
-# ---------------------------
-
-def test_product_schema_discriminated_union_and_dept_info():
-	schema = Product.model_json_schema()
-
-	# Ensure details field is a discriminated union by "kind"
-	details_schema = schema["properties"]["details"]
-	assert "discriminator" in details_schema
-	assert details_schema["discriminator"]["propertyName"] == "kind"
-
-	# Ensure DepartmentInfo is present in each details schema as nested field "dept"
-	found_any_of = details_schema.get("anyOf") or details_schema.get("oneOf")
-	assert found_any_of and isinstance(found_any_of, list)
-	for variant in found_any_of:
-		props = variant.get("properties", {})
-		assert "dept" in props
-		dept_props = props["dept"].get("properties", {})
-		# DepartmentInfo has a "department" field shaped by our DepartmentName
-		assert "department" in dept_props
-
-
-def test_can_instantiate_products_for_multiple_departments():
-	# Clothing product
-	p1 = Product(
-		product_id=1,
-		sku="TSHIRT-001",
-		name="Basic Tee",
-		price=Decimal("19.99"),
-		launch_date=date(2024, 5, 1),
-		details=ClothingDetails(
-			dept=DepartmentInfo(department="clothing", aisle="A1"),
-			size="M",
-			color="Navy",
-		),
-	)
-	assert p1.details.kind == "clothing"
-	assert p1.details.dept.department == "clothing"
-
-	# Electronics product
-	p2 = Product(
-		product_id=2,
-		sku="HEADSET-200",
-		name="Wireless Headset",
-		price=Decimal("89.50"),
-		launch_date=date(2024, 7, 15),
-		details=ElectronicsDetails(
-			dept=DepartmentInfo(department="electronics", aisle="E3"),
-			brand="Acme",
-			watts=10,
-			warranty_months=24,
-		),
-	)
-	assert p2.details.kind == "electronics"
-	assert p2.details.dept.department == "electronics"
-
-	# Grocery product (optional expiration)
-	p3 = Product(
-		product_id=3,
-		sku="APPLE-GALA",
-		name="Gala Apples (1kg)",
-		price=Decimal("3.49"),
-		launch_date=date(2024, 9, 10),
-		details=GroceryDetails(
-			dept=DepartmentInfo(department="grocery", aisle="G5"),
-			perishable=True,
-		),
-	)
-	assert p3.details.kind == "grocery"
-	assert p3.details.dept.department == "grocery"
-
-	# Furniture product
-	p4 = Product(
-		product_id=4,
-		sku="SOFA-3S",
-		name="3-Seater Sofa",
-		price=Decimal("599.00"),
-		launch_date=date(2024, 3, 20),
-		details=FurnitureDetails(
-			dept=DepartmentInfo(department="furniture", aisle="F2"),
-			material="Leather",
-			weight_kg=42.5,
-		),
-	)
-	assert p4.details.kind == "furniture"
-	assert p4.details.dept.department == "furniture"
-
 
 # ---------------------------
 # Example SQL DDL (PostgreSQL)
@@ -252,3 +161,91 @@ EXAMPLE_SQL_DDL = {
         ");"
     ),
 }
+
+# ---------------------------
+# Smoke tests for abstraction
+# ---------------------------
+
+def test_product_schema_discriminated_union_and_dept_info():
+	schema = Product.model_json_schema()
+
+	# Ensure details field is a discriminated union by "kind"
+	details_schema = schema["properties"]["details"]
+	assert "discriminator" in details_schema
+	assert details_schema["discriminator"]["propertyName"] == "kind"
+
+	# Ensure DepartmentInfo is present in each details schema as nested field "dept"
+	found_any_of = details_schema.get("anyOf") or details_schema.get("oneOf")
+	assert found_any_of and isinstance(found_any_of, list)
+	for variant in found_any_of:
+		props = variant.get("properties", {})
+		assert "dept" in props
+		dept_props = props["dept"].get("properties", {})
+		# DepartmentInfo has a "department" field shaped by our DepartmentName
+		assert "department" in dept_props
+
+
+def test_can_instantiate_products_for_multiple_departments():
+	# Clothing product
+	p1 = Product(
+		product_id=1,
+		sku="TSHIRT-001",
+		name="Basic Tee",
+		price=Decimal("19.99"),
+		launch_date=date(2024, 5, 1),
+		details=ClothingDetails(
+			dept=DepartmentInfo(department="clothing", aisle="A1"),
+			size="M",
+			color="Navy",
+		),
+	)
+	assert p1.details.kind == "clothing"
+	assert p1.details.dept.department == "clothing"
+
+	# Electronics product
+	p2 = Product(
+		product_id=2,
+		sku="HEADSET-200",
+		name="Wireless Headset",
+		price=Decimal("89.50"),
+		launch_date=date(2024, 7, 15),
+		details=ElectronicsDetails(
+			dept=DepartmentInfo(department="electronics", aisle="E3"),
+			brand="Acme",
+			watts=10,
+			warranty_months=24,
+		),
+	)
+	assert p2.details.kind == "electronics"
+	assert p2.details.dept.department == "electronics"
+
+	# Grocery product (optional expiration)
+	p3 = Product(
+		product_id=3,
+		sku="APPLE-GALA",
+		name="Gala Apples (1kg)",
+		price=Decimal("3.49"),
+		launch_date=date(2024, 9, 10),
+		details=GroceryDetails(
+			dept=DepartmentInfo(department="grocery", aisle="G5"),
+			perishable=True,
+		),
+	)
+	assert p3.details.kind == "grocery"
+	assert p3.details.dept.department == "grocery"
+
+	# Furniture product
+	p4 = Product(
+		product_id=4,
+		sku="SOFA-3S",
+		name="3-Seater Sofa",
+		price=Decimal("599.00"),
+		launch_date=date(2024, 3, 20),
+		details=FurnitureDetails(
+			dept=DepartmentInfo(department="furniture", aisle="F2"),
+			material="Leather",
+			weight_kg=42.5,
+		),
+	)
+	assert p4.details.kind == "furniture"
+	assert p4.details.dept.department == "furniture"
