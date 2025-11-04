@@ -32,6 +32,7 @@ def generate_sql(model: Type[BaseModel]) -> str:
 
     columns_sql = ",\n    ".join(columns)
     sql = f"CREATE TABLE {table_name} (\n    {columns_sql}\n);"
+    print(sql)
     return sql
 
 
