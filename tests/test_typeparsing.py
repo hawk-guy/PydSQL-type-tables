@@ -21,7 +21,6 @@ from tests.fixtures.product_models_annotated import (
     FlexibleId,
     MaybeNumber,
     StatusCode,
-    Priority,
 )
 
 
@@ -220,6 +219,40 @@ class TestTypeParsing(unittest.TestCase):
 
         self.assertEqual(annotation["kind"], "type_ref")
         self.assertEqual(annotation["name"], "DepartmentName")
+
+    def test_status_code_union_with_literal_and_basic_type(self):
+        """Test that StatusCode (Union of Literal and int) is correctly
+        parsed with both options having proper structure.
+        """
+        result = describe_annotation(StatusCode)
+        
+        # Should be a union
+        self.assertEqual(result["kind"], "union")
+        self.assertFalse(result["optional"])
+        
+        # Should have exactly 2 options: Literal and int
+        self.assertEqual(len(result["options"]), 2)
+        
+        # Find the literal and int options
+        literal_option = None
+        int_option = None
+        for option in result["options"]:
+            if option["kind"] == "literal":
+                literal_option = option
+            elif option["kind"] == "type" and option["name"] == "int":
+                int_option = option
+        
+        # Verify literal option
+        self.assertIsNotNone(literal_option, "Should have a literal option")
+        self.assertSetEqual(
+            set(literal_option["values"]),
+            {"success", "error", "pending"}
+        )
+        self.assertFalse(literal_option["optional"])
+        
+        # Verify int option
+        self.assertIsNotNone(int_option, "Should have an int option")
+        self.assertFalse(int_option["optional"])
 
 
 if __name__ == "__main__":
